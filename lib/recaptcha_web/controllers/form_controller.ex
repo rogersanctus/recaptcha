@@ -1,49 +1,69 @@
 defmodule RecaptchaWeb.FormController do
+  alias Recaptcha.Validator
   use RecaptchaWeb, :controller
 
   require Logger
 
   def post(conn, %{"email" => email}) do
-    case validate_csrf(conn) do
-      %Plug.Conn{halted: true} = conn ->
-        conn
+    header_token = Recaptcha.Helper.get_header(conn, "x-token-recaptcha")
+    cookie_token = Plug.Conn.get_session(conn, :recaptcha_session_id)
 
-      conn ->
-        conn
-        |> put_status(:ok)
-        |> render(:post, email: email)
+    validator =
+      %Validator{stop_on_error: true}
+      |> Validator.validate(:email, fn -> validate_email(email) end)
+      |> Validator.validate(:csrf, fn -> validate_csrf(cookie_token, header_token) end)
+
+    if not Validator.has_errors?(validator) do
+      conn
+      |> put_status(:ok)
+      |> render(:post, email: email)
+    else
+      halt_conn(conn, validator.errors)
     end
   end
 
   def post(conn, _params) do
     conn
     |> put_status(:unprocessable_entity)
-    |> put_view(RecaptchaWeb.ErrorJSON)
-    |> render("error.json", %{error: "Invalid parameters"})
+    |> json(%{errors: %{general: "Invalid parameters"}})
   end
 
-  defp validate_csrf(conn) do
-    header = Recaptcha.Helper.get_header(conn, "x-token-recaptcha")
-    cookie = Plug.Conn.get_session(conn, :recaptcha_session_id)
+  def validate_email(nil) do
+    "is required"
+  end
 
+  def validate_email(email) when is_binary(email) do
     cond do
-      is_nil(header) || is_nil(cookie) ->
-        Logger.info("Token in the header or in the cookie is nil")
-        halt_conn(conn)
+      String.trim(email) |> String.length() == 0 ->
+        "is required"
 
-      header != cookie ->
-        Logger.info("Token in the header don't match the one in the cookie")
-        halt_conn(conn)
+      not String.match?(email, ~r/.+@.+/) ->
+        "is invalid"
 
       true ->
-        ets_verify_token(conn, header)
+        true
     end
   end
 
-  defp ets_verify_token(conn, token) do
+  defp validate_csrf(cookie_token, header_token) do
+    cond do
+      is_nil(header_token) || is_nil(cookie_token) ->
+        Logger.info("Token in the header or in the cookie is nil")
+        "is required"
+
+      header_token != cookie_token ->
+        Logger.info("Token in the header don't match the one in the cookie")
+        "is invalid"
+
+      true ->
+        ets_verify_token(header_token)
+    end
+  end
+
+  defp ets_verify_token(token) do
     cond do
       :ets.whereis(:recaptcha_token_table) == :undefined ->
-        halt_conn(conn)
+        "tokens list is not available"
 
       true ->
         tokens = :ets.lookup_element(:recaptcha_token_table, :tokens, 2)
@@ -51,18 +71,18 @@ defmodule RecaptchaWeb.FormController do
         case Enum.find(tokens, fn ets_token -> ets_token == token end) do
           nil ->
             Logger.info("Token is not in the valid tokens table")
-            halt_conn(conn)
+            "not signed"
 
           _ ->
-            conn
+            true
         end
     end
   end
 
-  defp halt_conn(conn) do
+  defp halt_conn(conn, errors) do
     conn
     |> put_status(:unauthorized)
-    |> json(%{error: "Invalid CSRF token"})
+    |> json(%{errors: errors})
     |> halt()
   end
 end
