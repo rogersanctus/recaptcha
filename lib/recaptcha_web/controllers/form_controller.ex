@@ -5,7 +5,7 @@ defmodule RecaptchaWeb.FormController do
   require Logger
 
   def post(conn, %{"email" => email}) do
-    header_token = Recaptcha.Helper.get_header(conn, "x-token-recaptcha")
+    header_token = Recaptcha.Helper.get_header(conn, "x-csrf-token")
     cookie_token = Plug.Conn.get_session(conn, :recaptcha_session_id)
 
     validator =

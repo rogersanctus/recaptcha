@@ -54,7 +54,7 @@ defmodule RecaptchaWeb.SessionController do
       session_id ->
         # And send in the header
         conn
-        |> Plug.Conn.put_resp_header("x-token-recaptcha", session_id)
+        |> Plug.Conn.put_resp_header("x-csrf-token", session_id)
     end
   end
 
