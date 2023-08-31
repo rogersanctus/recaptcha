@@ -14,11 +14,11 @@ defmodule RecaptchaWeb.Endpoint do
   socket "/live", Phoenix.LiveView.Socket, websocket: [connect_info: [session: @session_options]]
 
   plug Corsica,
-    # ["http://localhost:5173"],
-    origins: "http://localhost:5173",
-    expose_headers: ["x-token-recaptcha"],
+    # Uses Recaptcha.Helper.check_cors_origin?/2 to check the origin against the allowed origins
+    origins: [{Recaptcha.Helper, :check_cors_origin?, []}],
+    expose_headers: ["x-csrf-token"],
     allow_credentials: true,
-    allow_headers: ["content-type", "x-token-recaptcha"],
+    allow_headers: ["content-type", "x-csrf-token", "x-captcha-token"],
     allow_methods: :all
 
   # Serve at "/" the static files from "priv/static" directory.
