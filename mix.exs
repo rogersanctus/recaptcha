@@ -44,7 +44,8 @@ defmodule Recaptcha.MixProject do
       {:gettext, "~> 0.20"},
       {:jason, "~> 1.2"},
       {:plug_cowboy, "~> 2.5"},
-      {:corsica, "~> 2.1"}
+      {:corsica, "~> 2.1"},
+      {:dotenvy, "~> 0.8"}
     ]
   end
 
