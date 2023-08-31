@@ -20,6 +20,8 @@ if System.get_env("PHX_SERVER") do
   config :recaptcha, RecaptchaWeb.Endpoint, server: true
 end
 
+Recaptcha.Helper.load_dotenv()
+
 if config_env() == :prod do
   database_url =
     System.get_env("DATABASE_URL") ||
