@@ -26,9 +26,9 @@ erl_crash.dump
 recaptcha-*.tar
 
 # Ignore .env files
-!.env.example
 .env
 .env.*
+!.env.example
 
 # Ignore elixir language server folder
 /.elixir_ls/
