@@ -1,10 +1,11 @@
 defmodule RecaptchaWeb.FormController do
+  alias RecaptchaWeb.TurnstileValidator
   alias Recaptcha.Validator
   use RecaptchaWeb, :controller
 
   require Logger
 
-  def post(conn, %{"email" => email}) do
+  def post(conn, %{"email" => email, "captcha_token" => captcha_token}) do
     header_token = Recaptcha.Helper.get_header(conn, "x-csrf-token")
     cookie_token = Plug.Conn.get_session(conn, :recaptcha_session_id)
 
@@ -12,6 +13,7 @@ defmodule RecaptchaWeb.FormController do
       %Validator{stop_on_error: true}
       |> Validator.validate(:email, fn -> validate_email(email) end)
       |> Validator.validate(:csrf, fn -> validate_csrf(cookie_token, header_token) end)
+      |> Validator.validate(:captcha, fn -> validate_captcha(captcha_token) end)
 
     if not Validator.has_errors?(validator) do
       conn
@@ -57,6 +59,16 @@ defmodule RecaptchaWeb.FormController do
 
       true ->
         ets_verify_token(header_token)
+    end
+  end
+
+  defp validate_captcha(token) do
+    case TurnstileValidator.validate(token) do
+      {:ok, _} ->
+        true
+
+      {:error, error} ->
+        Jason.encode!(error)
     end
   end
 
