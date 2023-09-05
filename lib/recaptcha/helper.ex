@@ -18,7 +18,7 @@ defmodule Recaptcha.Helper do
         Logger.warning(":env_mode is not set in the application config.")
         envs
       else
-        Logger.warning(":env_mode = #{env_mode}")
+        Logger.info(":env_mode = #{env_mode}")
         envs ++ [".env.#{env_mode}"]
       end
 
