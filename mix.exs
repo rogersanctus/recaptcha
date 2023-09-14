@@ -45,7 +45,8 @@ defmodule Recaptcha.MixProject do
       {:jason, "~> 1.2"},
       {:plug_cowboy, "~> 2.5"},
       {:corsica, "~> 2.1"},
-      {:dotenvy, "~> 0.8"}
+      {:dotenvy, "~> 0.8"},
+      {:uuid, "~> 1.1"}
     ]
   end
 
