@@ -44,8 +44,8 @@ defmodule RecaptchaWeb.TurnstileValidator do
     end
   end
 
-  defp validate_response(200, %{"success" => true, "action" => action, "hostname" => hostname}) do
-    {:ok, %{action: action, hostname: hostname}}
+  defp validate_response(200, %{"success" => true} = response) do
+    {:ok, response}
   end
 
   defp validate_response(200, %{"success" => false, "error-codes" => codes}) do
