@@ -9,7 +9,9 @@ defmodule RecaptchaWeb.CsrfPipeline do
     if CsrfPlus.Exception.csrf_plus_exception?(exception) do
       conn
       |> put_status(:unauthorized)
-      |> json(%{error: %{key: "csrf", message: exception.message}})
+      |> json(%{
+        errors: [%{key: "csrf", message: exception.message}]
+      })
       |> halt()
     else
       internal_error(conn, exception, stack)
@@ -24,12 +26,14 @@ defmodule RecaptchaWeb.CsrfPipeline do
     conn
     |> put_status(500)
     |> json(%{
-      error: %{
-        key: "general",
-        message: "Internal Server Error",
-        reason: "#{inspect(reason)}",
-        stack: "#{inspect(stack)}"
-      }
+      errors: [
+        %{
+          key: "general",
+          message: "Internal Server Error",
+          reason: "#{inspect(reason)}",
+          stack: "#{inspect(stack)}"
+        }
+      ]
     })
     |> halt()
   end
