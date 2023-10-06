@@ -9,7 +9,10 @@ defmodule Recaptcha.MixProject do
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
-      deps: deps()
+      deps: deps(),
+      preferred_cli_env: [
+        "test.watch": :test
+      ]
     ]
   end
 
@@ -46,7 +49,10 @@ defmodule Recaptcha.MixProject do
       {:plug_cowboy, "~> 2.5"},
       {:corsica, "~> 2.1"},
       {:dotenvy, "~> 0.8"},
-      {:uuid, "~> 1.1"}
+      {:uuid, "~> 1.1"},
+      {:csrf_plus,
+       git: "https://github.com/rogersanctus/csrf_plus.git", branch: "add-exceptions"},
+      {:mix_test_watch, git: "https://github.com/rogersanctus/mix-test.watch.git", only: [:test]}
     ]
   end
 

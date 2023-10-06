@@ -1,8 +1,10 @@
 defmodule RecaptchaWeb.SessionController do
-  alias Ecto.UUID
+  alias CsrfPlus.UserAccess
   use RecaptchaWeb, :controller
 
   require Logger
+
+  @csrf_key "_csrf_token"
 
   def sync(conn, _params) do
     show_ip_address(conn)
@@ -15,52 +17,60 @@ defmodule RecaptchaWeb.SessionController do
     |> text("")
   end
 
+  def csrf_key, do: @csrf_key
+
   defp show_ip_address(conn) do
     Logger.info("IP address: #{inspect(conn.remote_ip)}")
 
-    Plug.Conn.get_req_header(conn, "x-real-ip")
+    get_req_header(conn, "x-real-ip")
     |> IO.inspect(label: "x-real-ip")
 
-    Plug.Conn.get_req_header(conn, "x-forwarded-for")
+    get_req_header(conn, "x-forwarded-for")
     |> IO.inspect(label: "x-forwarded-for")
   end
 
   defp put_cookie_token(conn) do
-    case Plug.Conn.get_session(conn, :recaptcha_session_id) do
+    case get_session(conn, :access_id) do
       nil ->
-        Logger.info("Creating new session id")
+        {token, signed_token} = CsrfPlus.Token.generate()
 
-        session_id =
-          UUID.generate()
-          |> Base.encode64()
+        Logger.info(
+          "Creating new csrf token: #{inspect(token)} with signed: #{inspect(signed_token)}"
+        )
 
-        ets_save_session_id(session_id)
+        access_id = UUID.uuid4()
+        CsrfPlus.Store.MemoryDb.put_access(%UserAccess{token: token, access_id: access_id})
 
-        conn
         # Save in the cookie
-        |> Plug.Conn.put_session(:recaptcha_session_id, session_id)
-
-      _ ->
-        Logger.info("Using existing session id")
         conn
+        |> CsrfPlus.put_session_token(token)
+        |> put_session(:access_id, access_id)
+        |> assign(:csrf_token, signed_token)
+
+      _access_id ->
+        Logger.info("Using existing session id")
+        Logger.info("Using given signed token through request header")
+
+        signed_token =
+          conn
+          |> get_req_header("x-csrf-token")
+          |> List.first()
+
+        conn
+        |> assign(:csrf_token, signed_token)
     end
   end
 
   defp put_header_token(conn) do
-    case Plug.Conn.get_session(conn, :recaptcha_session_id) do
+    case Map.get(conn.assigns, :csrf_token) do
       nil ->
         halt(conn)
 
-      session_id ->
+      signed_token ->
+        Logger.info("csrf token at assigns: #{inspect(signed_token)}")
         # And send in the header
         conn
-        |> Plug.Conn.put_resp_header("x-csrf-token", session_id)
+        |> put_resp_header("x-csrf-token", signed_token)
     end
-  end
-
-  defp ets_save_session_id(session_id) do
-    Logger.info("Adding token to the ets table")
-    tokens = :ets.lookup_element(:recaptcha_token_table, :tokens, 2)
-    :ets.insert(:recaptcha_token_table, {:tokens, [session_id | tokens]})
   end
 end

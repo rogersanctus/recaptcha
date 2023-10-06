@@ -23,7 +23,8 @@ defmodule Recaptcha.Application do
       # Start Finch
       {Finch, name: Recaptcha.Finch},
       # Start the Endpoint (http/https)
-      RecaptchaWeb.Endpoint
+      RecaptchaWeb.Endpoint,
+      {CsrfPlus.Supervisor, []}
       # Start a worker by calling: Recaptcha.Worker.start_link(arg)
       # {Recaptcha.Worker, arg}
     ]

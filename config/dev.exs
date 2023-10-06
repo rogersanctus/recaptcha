@@ -22,7 +22,7 @@ config :recaptcha, RecaptchaWeb.Endpoint,
   http: [ip: {0, 0, 0, 0}, port: 4000],
   check_origin: false,
   code_reloader: true,
-  debug_errors: true,
+  debug_errors: false,
   secret_key_base: "v98rWYmS1LAWKk0eGuC/EPpcQtuEhoGv4BthhrX7gIKca9RBhx0WNN/ut7aJ4BJi",
   watchers: []
 
@@ -64,3 +64,9 @@ config :phoenix, :plug_init_mode, :runtime
 
 # Disable swoosh api client as it is only required for production adapters.
 config :swoosh, :api_client, false
+
+# Config CsrfPlus
+config :csrf_plus, CsrfPlus, store: CsrfPlus.Store.MemoryDb
+
+config :csrf_plus, CsrfPlus.Token,
+  secret_key: "aXbzzejqMDSJxQChKevkzzcQfEJdgFMCP3JziM2OcvnRiOnS8Dg6WdRPGEPMlGjA"
