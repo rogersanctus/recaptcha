@@ -1,9 +1,19 @@
 defmodule RecaptchaWeb.FormController do
   alias RecaptchaWeb.TurnstileValidator
   alias Recaptcha.Validator
+  alias CsrfPlus.UserAccess
+
   use RecaptchaWeb, :controller
 
   require Logger
+
+  def get(conn, _params) do
+    conn
+    |> put_cookie_token()
+    |> put_header_token()
+    |> put_secure_browser_headers()
+    |> send_resp(:no_content, "")
+  end
 
   def post(conn, %{"email" => email, "captcha_token" => captcha_token}) do
     validator =
@@ -58,5 +68,50 @@ defmodule RecaptchaWeb.FormController do
     |> put_status(:unauthorized)
     |> json(%{errors: errors})
     |> halt()
+  end
+
+  defp put_cookie_token(conn) do
+    case get_session(conn, :access_id) do
+      nil ->
+        {token, signed_token} = CsrfPlus.Token.generate()
+
+        Logger.info(
+          "Creating new csrf token: #{inspect(token)} with signed: #{inspect(signed_token)}"
+        )
+
+        access_id = UUID.uuid4()
+        CsrfPlus.Store.MemoryDb.put_access(%UserAccess{token: token, access_id: access_id})
+
+        # Save in the cookie
+        conn
+        |> CsrfPlus.put_session_token(token)
+        |> put_session(:access_id, access_id)
+        |> assign(:csrf_token, signed_token)
+
+      _access_id ->
+        Logger.info("Using existing session id")
+        Logger.info("Using given signed token through request header")
+
+        signed_token =
+          conn
+          |> get_req_header("x-csrf-token")
+          |> List.first()
+
+        conn
+        |> assign(:csrf_token, signed_token)
+    end
+  end
+
+  defp put_header_token(conn) do
+    case Map.get(conn.assigns, :csrf_token) do
+      nil ->
+        halt(conn)
+
+      signed_token ->
+        Logger.info("csrf token at assigns: #{inspect(signed_token)}")
+        # And send in the header
+        conn
+        |> put_resp_header("x-csrf-token", signed_token)
+    end
   end
 end

@@ -3,7 +3,9 @@ defmodule RecaptchaWeb.CsrfPipeline do
   use Recaptcha.ErrorHandler
   import Phoenix.Controller
 
-  plug CsrfPlus, csrf_key: RecaptchaWeb.SessionController.csrf_key()
+  @csrf_key "_csrf_token"
+
+  plug CsrfPlus, csrf_key: @csrf_key
 
   def handle_errors(conn, %{kind: :error, reason: exception, stack: stack}) do
     if CsrfPlus.Exception.csrf_plus_exception?(exception) do

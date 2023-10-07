@@ -10,7 +10,6 @@ defmodule RecaptchaWeb.Router do
   scope "/api", RecaptchaWeb do
     pipe_through :api
 
-    get "/session", SessionController, :sync
     post "/form", FormController, :post
     get "/form", FormController, :get
   end
