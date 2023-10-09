@@ -4,7 +4,10 @@ defmodule RecaptchaWeb.Router do
   pipeline :api do
     plug :accepts, ["json"]
     plug :fetch_session
-    plug RecaptchaWeb.CsrfPipeline
+
+    plug CsrfPlus,
+      csrf_key: RecaptchaWeb.Csrf.csrf_key(),
+      error_mapper: RecaptchaWeb.Csrf
   end
 
   scope "/api", RecaptchaWeb do

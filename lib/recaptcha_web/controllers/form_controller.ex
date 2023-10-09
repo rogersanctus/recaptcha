@@ -73,33 +73,43 @@ defmodule RecaptchaWeb.FormController do
   defp put_cookie_token(conn) do
     case get_session(conn, :access_id) do
       nil ->
-        {token, signed_token} = CsrfPlus.Token.generate()
+        put_new_cookie_token(conn)
 
-        Logger.info(
-          "Creating new csrf token: #{inspect(token)} with signed: #{inspect(signed_token)}"
-        )
+      access_id ->
+        case CsrfPlus.Store.MemoryDb.get_access(access_id) do
+          nil ->
+            put_new_cookie_token(conn)
 
-        access_id = UUID.uuid4()
-        CsrfPlus.Store.MemoryDb.put_access(%UserAccess{token: token, access_id: access_id})
+          _ ->
+            Logger.info("Using existing session id")
+            Logger.info("Using given signed token through request header")
 
-        # Save in the cookie
-        conn
-        |> CsrfPlus.put_session_token(token)
-        |> put_session(:access_id, access_id)
-        |> assign(:csrf_token, signed_token)
+            signed_token =
+              conn
+              |> get_req_header("x-csrf-token")
+              |> List.first()
 
-      _access_id ->
-        Logger.info("Using existing session id")
-        Logger.info("Using given signed token through request header")
-
-        signed_token =
-          conn
-          |> get_req_header("x-csrf-token")
-          |> List.first()
-
-        conn
-        |> assign(:csrf_token, signed_token)
+            conn
+            |> assign(:csrf_token, signed_token)
+        end
     end
+  end
+
+  defp put_new_cookie_token(conn) do
+    {token, signed_token} = CsrfPlus.Token.generate()
+
+    Logger.info(
+      "Creating new csrf token: #{inspect(token)} with signed: #{inspect(signed_token)}"
+    )
+
+    access_id = UUID.uuid4()
+    CsrfPlus.Store.MemoryDb.put_access(%UserAccess{token: token, access_id: access_id})
+
+    # Save in the cookie
+    conn
+    |> CsrfPlus.put_session_token(token)
+    |> put_session(:access_id, access_id)
+    |> assign(:csrf_token, signed_token)
   end
 
   defp put_header_token(conn) do
