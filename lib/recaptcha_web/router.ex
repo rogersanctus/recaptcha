@@ -1,6 +1,9 @@
 defmodule RecaptchaWeb.Router do
+  alias CsrfPlus.UserAccess
   use RecaptchaWeb, :router
 
+  # You can define another pipeline that doesn't use the CSRF plug
+  # for endpoints that doesn't need such a protection.
   pipeline :api do
     plug :accepts, ["json"]
     plug :fetch_session
@@ -8,6 +11,9 @@ defmodule RecaptchaWeb.Router do
     plug CsrfPlus,
       csrf_key: RecaptchaWeb.Csrf.csrf_key(),
       error_mapper: RecaptchaWeb.Csrf
+
+    plug :put_csrf_token
+    plug :put_secure_browser_headers
   end
 
   scope "/api", RecaptchaWeb do
@@ -31,6 +37,25 @@ defmodule RecaptchaWeb.Router do
 
       live_dashboard "/dashboard", metrics: RecaptchaWeb.Telemetry
       forward "/mailbox", Plug.Swoosh.MailboxPreview
+    end
+  end
+
+  # A local plug to just send the tokens over the connection response.
+  defp put_csrf_token(conn, _opts) do
+    access_id = get_session(conn, :access_id)
+    access = access_id && CsrfPlus.Store.MemoryDb.get_access(access_id)
+
+    token_tuple = CsrfPlus.get_token_tuple(conn)
+
+    # Check if access is stored
+    with %UserAccess{} <- access, {_token, signed_token} <- token_tuple do
+      # In this case, send only the x-csrf-token header
+      CsrfPlus.put_header_token(conn, signed_token)
+    else
+      _ ->
+        # Otherwise, all tokens must be updated
+        conn
+        |> CsrfPlus.put_token(token_tuple: token_tuple)
     end
   end
 end

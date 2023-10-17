@@ -50,7 +50,7 @@ defmodule Recaptcha.MixProject do
       {:corsica, "~> 2.1"},
       {:dotenvy, "~> 0.8"},
       {:uuid, "~> 1.1"},
-      {:csrf_plus, git: "https://github.com/rogersanctus/csrf_plus.git"},
+      {:csrf_plus, "~> 0.2"},
       {:mix_test_watch, git: "https://github.com/rogersanctus/mix-test.watch.git", only: [:test]}
     ]
   end
