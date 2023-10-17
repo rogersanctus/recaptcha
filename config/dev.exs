@@ -65,8 +65,5 @@ config :phoenix, :plug_init_mode, :runtime
 # Disable swoosh api client as it is only required for production adapters.
 config :swoosh, :api_client, false
 
-# Config CsrfPlus
-config :csrf_plus, CsrfPlus, store: CsrfPlus.Store.MemoryDb
-
 config :csrf_plus, CsrfPlus.Token,
   secret_key: "aXbzzejqMDSJxQChKevkzzcQfEJdgFMCP3JziM2OcvnRiOnS8Dg6WdRPGEPMlGjA"
